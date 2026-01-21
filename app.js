@@ -1,8 +1,8 @@
 const STORAGE_KEY = "cat-hotel-data";
 const defaultState = {
   prices: {
-    single: 180,
-    group: 120,
+    single: 35,
+    group: 28,
   },
   owners: [],
   cats: [],
@@ -26,6 +26,7 @@ const elements = {
   ownerForm: document.getElementById("ownerForm"),
   ownerName: document.getElementById("ownerName"),
   ownerContact: document.getElementById("ownerContact"),
+  ownerDiscount: document.getElementById("ownerDiscount"),
   ownerNote: document.getElementById("ownerNote"),
   catForm: document.getElementById("catForm"),
   catName: document.getElementById("catName"),
@@ -80,7 +81,7 @@ function saveState() {
 
 function formatCurrency(value) {
   const number = Number(value) || 0;
-  return `¥${number.toLocaleString("zh-CN")}`;
+  return `A$${number.toLocaleString("zh-CN")}`;
 }
 
 function daysBetween(start, end) {
@@ -163,10 +164,15 @@ function renderCatOptions() {
 function renderOwners() {
   elements.ownerTable.innerHTML = "";
   state.owners.forEach((owner) => {
+    const discountLabel =
+      owner.discountPercent && Number(owner.discountPercent) > 0
+        ? `${owner.discountPercent}%`
+        : "—";
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${owner.name}</td>
       <td>${owner.contact || ""}</td>
+      <td>${discountLabel}</td>
       <td>${owner.note || ""}</td>
       <td>
         <button data-action="edit" data-id="${owner.id}">编辑</button>
@@ -298,6 +304,7 @@ function renderCalendar() {
 
 function resetForms() {
   elements.ownerForm.reset();
+  elements.ownerDiscount.value = "";
   elements.catForm.reset();
   elements.stayForm.reset();
   elements.visitForm.reset();
@@ -341,6 +348,7 @@ elements.ownerForm.addEventListener("submit", (event) => {
     id: editing.ownerId || crypto.randomUUID(),
     name: elements.ownerName.value.trim(),
     contact: elements.ownerContact.value.trim(),
+    discountPercent: Number(elements.ownerDiscount.value) || 0,
     note: elements.ownerNote.value.trim(),
   };
   if (!owner.name) {
@@ -387,13 +395,17 @@ elements.stayForm.addEventListener("submit", (event) => {
   const days = daysBetween(stayStart, stayEnd);
   const feeInput = Number(elements.stayFee.value) || 0;
   const defaultFee = stayType === "single" ? state.prices.single : state.prices.group;
+  const cat = state.cats.find((item) => item.id === elements.stayCat.value);
+  const owner = state.owners.find((item) => item.id === cat?.ownerId);
+  const discountPercent = Number(owner?.discountPercent) || 0;
+  const discountFactor = Math.max(0, 1 - discountPercent / 100);
   const stay = {
     id: editing.stayId || crypto.randomUUID(),
     catId: elements.stayCat.value,
     type: stayType,
     start: stayStart,
     end: stayEnd,
-    fee: feeInput || defaultFee * days,
+    fee: feeInput || defaultFee * days * discountFactor,
   };
   if (!stay.catId || !stay.start || !stay.end) {
     return;
@@ -454,6 +466,7 @@ elements.ownerTable.addEventListener("click", (event) => {
   editing.ownerId = ownerId;
   elements.ownerName.value = owner.name;
   elements.ownerContact.value = owner.contact;
+  elements.ownerDiscount.value = owner.discountPercent || "";
   elements.ownerNote.value = owner.note;
   setEditingForm(elements.ownerForm, "edit");
 });
