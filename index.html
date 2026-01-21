@@ -21,7 +21,7 @@
         <div class="dashboard">
           <div>
             <span class="label">本月收入</span>
-            <strong id="monthlyRevenue">A$0</strong>
+            <strong id="monthlyRevenue">¥0</strong>
           </div>
           <div>
             <span class="label">本月寄养猫只</span>
@@ -40,14 +40,14 @@
           <div class="card">
             <h3>单间</h3>
             <p>按天收费，适合独立空间。</p>
-            <label>日租价格 (A$)
+            <label>日租价格 (¥)
               <input type="number" id="singlePrice" min="0" step="10" />
             </label>
           </div>
           <div class="card">
             <h3>幼儿园</h3>
             <p>互动空间，适合群体活动。</p>
-            <label>日租价格 (A$)
+            <label>日租价格 (¥)
               <input type="number" id="groupPrice" min="0" step="10" />
             </label>
           </div>
@@ -66,12 +66,6 @@
             <label>联系方式
               <input type="text" id="ownerContact" />
             </label>
-            <label>折扣 (%)
-              <input type="number" id="ownerDiscount" min="0" max="100" step="1" placeholder="例如 10" />
-            </label>
-            <label>猫咪名字 (可多个，用逗号分隔)
-              <input type="text" id="ownerCats" placeholder="例如 糖糖, 毛球" />
-            </label>
             <label>备注
               <textarea id="ownerNote" rows="2"></textarea>
             </label>
@@ -83,7 +77,7 @@
               <input type="text" id="catName" required />
             </label>
             <label>所属客人
-              <select id="catOwner" required></select>
+              <select id="catOwner"></select>
             </label>
             <label>性格/饮食习惯
               <textarea id="catNote" rows="2"></textarea>
@@ -98,7 +92,6 @@
               <tr>
                 <th>姓名</th>
                 <th>联系方式</th>
-                <th>折扣</th>
                 <th>备注</th>
                 <th>操作</th>
               </tr>
@@ -141,7 +134,7 @@
             <label>离店日期
               <input type="date" id="stayEnd" required />
             </label>
-            <label>总费用 (A$)
+            <label>总费用 (¥)
               <input type="number" id="stayFee" min="0" />
             </label>
           </div>
@@ -188,7 +181,7 @@
             <label>自定义日期
               <input type="text" id="visitCustom" placeholder="2024-05-03, 2024-05-06" />
             </label>
-            <label>总费用 (A$)
+            <label>总费用 (¥)
               <input type="number" id="visitFee" min="0" />
             </label>
           </div>

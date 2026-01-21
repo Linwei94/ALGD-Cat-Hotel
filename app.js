@@ -1,8 +1,8 @@
 const STORAGE_KEY = "cat-hotel-data";
 const defaultState = {
   prices: {
-    single: 35,
-    group: 28,
+    single: 180,
+    group: 120,
   },
   owners: [],
   cats: [],
@@ -26,8 +26,6 @@ const elements = {
   ownerForm: document.getElementById("ownerForm"),
   ownerName: document.getElementById("ownerName"),
   ownerContact: document.getElementById("ownerContact"),
-  ownerDiscount: document.getElementById("ownerDiscount"),
-  ownerCats: document.getElementById("ownerCats"),
   ownerNote: document.getElementById("ownerNote"),
   catForm: document.getElementById("catForm"),
   catName: document.getElementById("catName"),
@@ -82,7 +80,7 @@ function saveState() {
 
 function formatCurrency(value) {
   const number = Number(value) || 0;
-  return `A$${number.toLocaleString("zh-CN")}`;
+  return `¥${number.toLocaleString("zh-CN")}`;
 }
 
 function daysBetween(start, end) {
@@ -97,16 +95,6 @@ function toDateKey(date) {
 }
 
 function parseCustomDates(input) {
-  if (!input) {
-    return [];
-  }
-  return input
-    .split(/,|，/)
-    .map((value) => value.trim())
-    .filter(Boolean);
-}
-
-function parseCatNames(input) {
   if (!input) {
     return [];
   }
@@ -175,15 +163,10 @@ function renderCatOptions() {
 function renderOwners() {
   elements.ownerTable.innerHTML = "";
   state.owners.forEach((owner) => {
-    const discountLabel =
-      owner.discountPercent && Number(owner.discountPercent) > 0
-        ? `${owner.discountPercent}%`
-        : "—";
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${owner.name}</td>
       <td>${owner.contact || ""}</td>
-      <td>${discountLabel}</td>
       <td>${owner.note || ""}</td>
       <td>
         <button data-action="edit" data-id="${owner.id}">编辑</button>
@@ -315,8 +298,6 @@ function renderCalendar() {
 
 function resetForms() {
   elements.ownerForm.reset();
-  elements.ownerDiscount.value = "";
-  elements.ownerCats.value = "";
   elements.catForm.reset();
   elements.stayForm.reset();
   elements.visitForm.reset();
@@ -360,10 +341,8 @@ elements.ownerForm.addEventListener("submit", (event) => {
     id: editing.ownerId || crypto.randomUUID(),
     name: elements.ownerName.value.trim(),
     contact: elements.ownerContact.value.trim(),
-    discountPercent: Number(elements.ownerDiscount.value) || 0,
     note: elements.ownerNote.value.trim(),
   };
-  const catNames = parseCatNames(elements.ownerCats.value);
   if (!owner.name) {
     return;
   }
@@ -371,15 +350,6 @@ elements.ownerForm.addEventListener("submit", (event) => {
     state.owners = state.owners.map((item) => (item.id === owner.id ? owner : item));
   } else {
     state.owners.push(owner);
-  }
-  if (!editing.ownerId && catNames.length > 0) {
-    const newCats = catNames.map((name) => ({
-      id: crypto.randomUUID(),
-      name,
-      ownerId: owner.id,
-      note: "",
-    }));
-    state.cats.push(...newCats);
   }
   saveState();
   resetForms();
@@ -417,17 +387,13 @@ elements.stayForm.addEventListener("submit", (event) => {
   const days = daysBetween(stayStart, stayEnd);
   const feeInput = Number(elements.stayFee.value) || 0;
   const defaultFee = stayType === "single" ? state.prices.single : state.prices.group;
-  const cat = state.cats.find((item) => item.id === elements.stayCat.value);
-  const owner = state.owners.find((item) => item.id === cat?.ownerId);
-  const discountPercent = Number(owner?.discountPercent) || 0;
-  const discountFactor = Math.max(0, 1 - discountPercent / 100);
   const stay = {
     id: editing.stayId || crypto.randomUUID(),
     catId: elements.stayCat.value,
     type: stayType,
     start: stayStart,
     end: stayEnd,
-    fee: feeInput || defaultFee * days * discountFactor,
+    fee: feeInput || defaultFee * days,
   };
   if (!stay.catId || !stay.start || !stay.end) {
     return;
@@ -488,9 +454,7 @@ elements.ownerTable.addEventListener("click", (event) => {
   editing.ownerId = ownerId;
   elements.ownerName.value = owner.name;
   elements.ownerContact.value = owner.contact;
-  elements.ownerDiscount.value = owner.discountPercent || "";
   elements.ownerNote.value = owner.note;
-  elements.ownerCats.value = "";
   setEditingForm(elements.ownerForm, "edit");
 });
 
