@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>猫咪寄养管理工具</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="page-header">
+      <div>
+        <p class="subtitle">GitHub Pages 版 · 本地浏览器保存</p>
+        <h1>猫咪寄养与上门喂养管理</h1>
+      </div>
+      <div class="storage-indicator" id="storageIndicator">数据已保存到本地浏览器</div>
+    </header>
+
+    <main>
+      <section class="panel">
+        <h2>仪表盘</h2>
+        <div class="dashboard">
+          <div>
+            <span class="label">本月收入</span>
+            <strong id="monthlyRevenue">¥0</strong>
+          </div>
+          <div>
+            <span class="label">本月寄养猫只</span>
+            <strong id="monthlyCats">0</strong>
+          </div>
+          <div>
+            <span class="label">本月上门喂养</span>
+            <strong id="monthlyVisits">0</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>寄养项目设置</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h3>单间</h3>
+            <p>按天收费，适合独立空间。</p>
+            <label>日租价格 (¥)
+              <input type="number" id="singlePrice" min="0" step="10" />
+            </label>
+          </div>
+          <div class="card">
+            <h3>幼儿园</h3>
+            <p>互动空间，适合群体活动。</p>
+            <label>日租价格 (¥)
+              <input type="number" id="groupPrice" min="0" step="10" />
+            </label>
+          </div>
+        </div>
+        <button class="primary" id="savePrices">保存价格</button>
+      </section>
+
+      <section class="panel">
+        <h2>客人与猫咪信息</h2>
+        <div class="grid-2">
+          <form class="card" id="ownerForm">
+            <h3>新增客人</h3>
+            <label>姓名
+              <input type="text" id="ownerName" required />
+            </label>
+            <label>联系方式
+              <input type="text" id="ownerContact" />
+            </label>
+            <label>备注
+              <textarea id="ownerNote" rows="2"></textarea>
+            </label>
+            <button class="primary" type="submit">保存客人</button>
+          </form>
+          <form class="card" id="catForm">
+            <h3>新增猫咪</h3>
+            <label>名字
+              <input type="text" id="catName" required />
+            </label>
+            <label>所属客人
+              <select id="catOwner"></select>
+            </label>
+            <label>性格/饮食习惯
+              <textarea id="catNote" rows="2"></textarea>
+            </label>
+            <button class="primary" type="submit">保存猫咪</button>
+          </form>
+        </div>
+        <div class="list-section">
+          <h3>客人列表</h3>
+          <table id="ownerTable">
+            <thead>
+              <tr>
+                <th>姓名</th>
+                <th>联系方式</th>
+                <th>备注</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="list-section">
+          <h3>猫咪列表</h3>
+          <table id="catTable">
+            <thead>
+              <tr>
+                <th>名字</th>
+                <th>所属客人</th>
+                <th>备注</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>寄养安排</h2>
+        <form class="card" id="stayForm">
+          <div class="grid-3">
+            <label>猫咪
+              <select id="stayCat"></select>
+            </label>
+            <label>房型
+              <select id="stayType">
+                <option value="single">单间</option>
+                <option value="group">幼儿园</option>
+              </select>
+            </label>
+            <label>入住日期
+              <input type="date" id="stayStart" required />
+            </label>
+            <label>离店日期
+              <input type="date" id="stayEnd" required />
+            </label>
+            <label>总费用 (¥)
+              <input type="number" id="stayFee" min="0" />
+            </label>
+          </div>
+          <button class="primary" type="submit">保存寄养</button>
+        </form>
+        <div class="list-section">
+          <h3>寄养记录</h3>
+          <table id="stayTable">
+            <thead>
+              <tr>
+                <th>猫咪</th>
+                <th>房型</th>
+                <th>入住</th>
+                <th>离店</th>
+                <th>费用</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>上门喂养</h2>
+        <form class="card" id="visitForm">
+          <div class="grid-3">
+            <label>客人
+              <select id="visitOwner"></select>
+            </label>
+            <label>开始日期
+              <input type="date" id="visitStart" required />
+            </label>
+            <label>结束日期
+              <input type="date" id="visitEnd" required />
+            </label>
+            <label>频率
+              <select id="visitFrequency">
+                <option value="daily">每天</option>
+                <option value="alternate">隔一天</option>
+                <option value="custom">自定义日期</option>
+              </select>
+            </label>
+            <label>自定义日期
+              <input type="text" id="visitCustom" placeholder="2024-05-03, 2024-05-06" />
+            </label>
+            <label>总费用 (¥)
+              <input type="number" id="visitFee" min="0" />
+            </label>
+          </div>
+          <button class="primary" type="submit">保存上门喂养</button>
+        </form>
+        <div class="list-section">
+          <h3>上门记录</h3>
+          <table id="visitTable">
+            <thead>
+              <tr>
+                <th>客人</th>
+                <th>日期范围</th>
+                <th>频率</th>
+                <th>费用</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="calendar-header">
+          <div>
+            <h2>寄养与上门日历</h2>
+            <p class="hint">显示这段时间哪只猫在店里、房型，以及今日是否需要上门喂养。</p>
+          </div>
+          <div class="calendar-controls">
+            <button id="prevMonth">上个月</button>
+            <span id="calendarTitle"></span>
+            <button id="nextMonth">下个月</button>
+          </div>
+        </div>
+        <div class="calendar" id="calendar"></div>
+      </section>
+    </main>
+
+    <footer>
+      <p>数据仅保存在你的浏览器 localStorage，建议定期导出备份。</p>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
