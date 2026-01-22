@@ -425,7 +425,6 @@ function renderAll() {
   renderCareMarks();
   renderCalendar();
   updateDashboard();
-  updateStayPricing();
   updateVisitPricing();
 }
 
@@ -720,28 +719,6 @@ function updateVisitPricing() {
   elements.visitCount.value = count;
   elements.visitFee.value = unitPrice * count;
 }
-
-function updateStayPricing() {
-  const stayStart = elements.stayStart.value;
-  const stayEnd = elements.stayEnd.value;
-  const days = stayStart && stayEnd ? daysBetween(stayStart, stayEnd) : 0;
-  const unitPrice = Number(elements.stayUnitPrice.value) || 0;
-  const cat = state.cats.find((item) => item.id === elements.stayCat.value);
-  const owner = state.owners.find((item) => item.id === cat?.ownerId);
-  const discountPercent = Number(owner?.discountPercent) || 0;
-  const discountFactor = Math.max(0, 1 - discountPercent / 100);
-  elements.stayDays.value = days;
-  elements.stayFee.value = unitPrice * days * discountFactor;
-}
-
-[
-  elements.stayStart,
-  elements.stayEnd,
-  elements.stayCat,
-  elements.stayUnitPrice,
-].forEach((input) => {
-  input.addEventListener("input", updateStayPricing);
-});
 
 [
   elements.visitStart,
