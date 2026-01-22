@@ -192,7 +192,8 @@ table button {
 .calendar .day {
   background: #f9fafb;
   border-radius: 12px;
-  min-height: 120px;
+  min-height: 180px;
+  max-height: 260px;
   padding: 8px;
   display: flex;
   flex-direction: column;
@@ -213,12 +214,15 @@ table button {
 }
 
 .tag {
-  font-size: 12px;
-  padding: 2px 6px;
+  font-size: 11px;
+  padding: 2px 8px;
   border-radius: 999px;
   background: #e0f2fe;
   color: #0369a1;
   align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .tag.group {
@@ -229,6 +233,29 @@ table button {
 .tag.visit {
   background: #dcfce7;
   color: #15803d;
+}
+
+.tag.care {
+  background: #fce7f3;
+  color: #be185d;
+}
+
+.day-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.care-icons {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.care-icon {
+  font-size: 12px;
+  line-height: 1;
 }
 
 .hint {
