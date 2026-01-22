@@ -51,6 +51,12 @@ const elements = {
   visitCustom: document.getElementById("visitCustom"),
   visitFee: document.getElementById("visitFee"),
   visitTable: document.getElementById("visitTable").querySelector("tbody"),
+  careForm: document.getElementById("careForm"),
+  careCat: document.getElementById("careCat"),
+  careDate: document.getElementById("careDate"),
+  careType: document.getElementById("careType"),
+  careNote: document.getElementById("careNote"),
+  careTable: document.getElementById("careTable").querySelector("tbody"),
   calendar: document.getElementById("calendar"),
   calendarTitle: document.getElementById("calendarTitle"),
   prevMonth: document.getElementById("prevMonth"),
@@ -179,6 +185,7 @@ function renderCatOptions() {
     .map((cat) => `<option value="${cat.id}">${cat.name}</option>`)
     .join("");
   elements.stayCat.innerHTML = options || '<option value="">请先添加猫咪</option>';
+  elements.careCat.innerHTML = options || '<option value="">请先添加猫咪</option>';
 }
 
 function renderOwners() {
@@ -412,6 +419,7 @@ function renderAll() {
   renderCats();
   renderStays();
   renderVisits();
+  renderCareMarks();
   renderCalendar();
   updateDashboard();
   updateStayPricing();
@@ -599,6 +607,29 @@ elements.visitForm.addEventListener("submit", (event) => {
   resetForms();
   renderAll();
   setEditingForm(elements.visitForm, "create");
+});
+
+elements.careForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const mark = {
+    id: editing.careId || crypto.randomUUID(),
+    catId: elements.careCat.value,
+    date: elements.careDate.value,
+    type: elements.careType.value,
+    note: elements.careNote.value.trim(),
+  };
+  if (!mark.catId || !mark.date) {
+    return;
+  }
+  if (editing.careId) {
+    state.careMarks = state.careMarks.map((item) => (item.id === mark.id ? mark : item));
+  } else {
+    state.careMarks.push(mark);
+  }
+  saveState();
+  resetForms();
+  renderAll();
+  setEditingForm(elements.careForm, "create");
 });
 
 elements.ownerTable.addEventListener("click", (event) => {
