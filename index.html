@@ -35,21 +35,25 @@
       </section>
 
       <section class="panel">
-        <div class="calendar-header">
-          <div>
-            <h2>寄养与上门日历</h2>
-            <p class="hint">显示这段时间哪只猫在店里、房型，以及今日是否需要上门喂养。</p>
+        <h2>寄养项目设置</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h3>单间</h3>
+            <p>按天收费，适合独立空间。</p>
+            <label>日租价格 (A$)
+              <input type="number" id="singlePrice" min="0" step="10" />
+            </label>
           </div>
-          <div class="calendar-controls">
-            <button id="prevMonth">上个月</button>
-            <span id="calendarTitle"></span>
-            <button id="nextMonth">下个月</button>
+          <div class="card">
+            <h3>幼儿园</h3>
+            <p>互动空间，适合群体活动。</p>
+            <label>日租价格 (A$)
+              <input type="number" id="groupPrice" min="0" step="10" />
+            </label>
           </div>
         </div>
-        <div class="calendar" id="calendar"></div>
+        <button class="primary" id="savePrices">保存价格</button>
       </section>
-
-
 
       <section class="panel">
         <h2>客人与猫咪信息</h2>
@@ -134,14 +138,8 @@
             <label>离店日期
               <input type="date" id="stayEnd" required />
             </label>
-            <label>单日价格 (A$)
-              <input type="number" id="stayUnitPrice" min="0" step="5" />
-            </label>
-            <label>入住天数
-              <input type="number" id="stayDays" min="0" readonly />
-            </label>
             <label>总费用 (A$)
-              <input type="number" id="stayFee" min="0" readonly />
+              <input type="number" id="stayFee" min="0" />
             </label>
           </div>
           <button class="primary" type="submit">保存寄养</button>
@@ -155,7 +153,6 @@
                 <th>房型</th>
                 <th>入住</th>
                 <th>离店</th>
-                <th>单日价 / 天数</th>
                 <th>费用</th>
                 <th>操作</th>
               </tr>
@@ -273,23 +270,8 @@
             <button id="nextMonth">下个月</button>
           </div>
         </div>
-        <div class="list-section">
-          <h3>特殊照顾列表</h3>
-          <table id="careTable">
-            <thead>
-              <tr>
-                <th>猫咪</th>
-                <th>日期</th>
-                <th>类型</th>
-                <th>备注</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
+        <div class="calendar" id="calendar"></div>
       </section>
-
     </main>
 
     <footer>
