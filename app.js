@@ -1,5 +1,9 @@
 const STORAGE_KEY = "cat-hotel-data";
 const defaultState = {
+  prices: {
+    single: 35,
+    group: 28,
+  },
   owners: [],
   cats: [],
   stays: [],
@@ -18,6 +22,9 @@ let editing = {
 let calendarDate = new Date();
 
 const elements = {
+  singlePrice: document.getElementById("singlePrice"),
+  groupPrice: document.getElementById("groupPrice"),
+  savePrices: document.getElementById("savePrices"),
   ownerForm: document.getElementById("ownerForm"),
   ownerName: document.getElementById("ownerName"),
   ownerContact: document.getElementById("ownerContact"),
@@ -34,8 +41,6 @@ const elements = {
   stayType: document.getElementById("stayType"),
   stayStart: document.getElementById("stayStart"),
   stayEnd: document.getElementById("stayEnd"),
-  stayUnitPrice: document.getElementById("stayUnitPrice"),
-  stayDays: document.getElementById("stayDays"),
   stayFee: document.getElementById("stayFee"),
   stayTable: document.getElementById("stayTable").querySelector("tbody"),
   visitForm: document.getElementById("visitForm"),
@@ -169,6 +174,11 @@ function updateDashboard() {
   elements.monthlyVisits.textContent = visitsThisMonth.length.toString();
 }
 
+function renderPriceInputs() {
+  elements.singlePrice.value = state.prices.single;
+  elements.groupPrice.value = state.prices.group;
+}
+
 function renderOwnerOptions() {
   const options = state.owners
     .map((owner) => `<option value="${owner.id}">${owner.name}</option>`)
@@ -235,7 +245,6 @@ function renderStays() {
       <td>${stay.type === "single" ? "单间" : "幼儿园"}</td>
       <td>${stay.start}</td>
       <td>${stay.end}</td>
-      <td>${formatCurrency(stay.unitPrice || 0)} × ${stay.days || 0}</td>
       <td>${formatCurrency(stay.fee)}</td>
       <td>
         <button data-action="edit" data-id="${stay.id}">编辑</button>
@@ -415,6 +424,7 @@ function resetForms() {
 }
 
 function renderAll() {
+  renderPriceInputs();
   renderOwnerOptions();
   renderCatOptions();
   renderCareOptions();
@@ -434,6 +444,13 @@ function setEditingForm(form, mode) {
     button.textContent = mode === "edit" ? "更新" : "保存";
   }
 }
+
+elements.savePrices.addEventListener("click", () => {
+  state.prices.single = Number(elements.singlePrice.value) || 0;
+  state.prices.group = Number(elements.groupPrice.value) || 0;
+  saveState();
+  updateDashboard();
+});
 
 elements.ownerForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -486,7 +503,8 @@ elements.stayForm.addEventListener("submit", (event) => {
   const stayEnd = elements.stayEnd.value;
   const stayType = elements.stayType.value;
   const days = daysBetween(stayStart, stayEnd);
-  const unitPrice = Number(elements.stayUnitPrice.value) || 0;
+  const feeInput = Number(elements.stayFee.value) || 0;
+  const defaultFee = stayType === "single" ? state.prices.single : state.prices.group;
   const cat = state.cats.find((item) => item.id === elements.stayCat.value);
   const owner = state.owners.find((item) => item.id === cat?.ownerId);
   const discountPercent = Number(owner?.discountPercent) || 0;
@@ -497,9 +515,7 @@ elements.stayForm.addEventListener("submit", (event) => {
     type: stayType,
     start: stayStart,
     end: stayEnd,
-    unitPrice,
-    days,
-    fee: unitPrice * days * discountFactor,
+    fee: feeInput || defaultFee * days * discountFactor,
   };
   if (!stay.catId || !stay.start || !stay.end) {
     return;
@@ -648,10 +664,7 @@ elements.stayTable.addEventListener("click", (event) => {
   elements.stayStart.value = stay.start;
   elements.stayEnd.value = stay.end;
   elements.stayFee.value = stay.fee;
-  elements.stayUnitPrice.value = stay.unitPrice || "";
-  elements.stayDays.value = stay.days || 0;
   setEditingForm(elements.stayForm, "edit");
-  updateStayPricing();
 });
 
 elements.visitTable.addEventListener("click", (event) => {
