@@ -1,13 +1,10 @@
 const STORAGE_KEY = "cat-hotel-data";
 const defaultState = {
-  prices: {
-    single: 35,
-    group: 28,
-  },
   owners: [],
   cats: [],
   stays: [],
   visits: [],
+  careMarks: [],
 };
 
 let state = loadState();
@@ -16,13 +13,11 @@ let editing = {
   catId: null,
   stayId: null,
   visitId: null,
+  careId: null,
 };
 let calendarDate = new Date();
 
 const elements = {
-  singlePrice: document.getElementById("singlePrice"),
-  groupPrice: document.getElementById("groupPrice"),
-  savePrices: document.getElementById("savePrices"),
   ownerForm: document.getElementById("ownerForm"),
   ownerName: document.getElementById("ownerName"),
   ownerContact: document.getElementById("ownerContact"),
@@ -39,13 +34,20 @@ const elements = {
   stayType: document.getElementById("stayType"),
   stayStart: document.getElementById("stayStart"),
   stayEnd: document.getElementById("stayEnd"),
+  stayUnitPrice: document.getElementById("stayUnitPrice"),
+  stayDays: document.getElementById("stayDays"),
   stayFee: document.getElementById("stayFee"),
+  stayCareDate: document.getElementById("stayCareDate"),
+  stayCareType: document.getElementById("stayCareType"),
+  stayCareNote: document.getElementById("stayCareNote"),
   stayTable: document.getElementById("stayTable").querySelector("tbody"),
   visitForm: document.getElementById("visitForm"),
   visitOwner: document.getElementById("visitOwner"),
   visitStart: document.getElementById("visitStart"),
   visitEnd: document.getElementById("visitEnd"),
   visitFrequency: document.getElementById("visitFrequency"),
+  visitUnitPrice: document.getElementById("visitUnitPrice"),
+  visitCount: document.getElementById("visitCount"),
   visitCustom: document.getElementById("visitCustom"),
   visitFee: document.getElementById("visitFee"),
   visitTable: document.getElementById("visitTable").querySelector("tbody"),
@@ -56,6 +58,13 @@ const elements = {
   monthlyRevenue: document.getElementById("monthlyRevenue"),
   monthlyCats: document.getElementById("monthlyCats"),
   monthlyVisits: document.getElementById("monthlyVisits"),
+};
+
+const careTypeOptions = {
+  attention: { label: "重点关注", icon: "⭐" },
+  medical: { label: "医疗照顾", icon: "🏥" },
+  medicine: { label: "喂药", icon: "💊" },
+  grooming: { label: "清洁护理", icon: "🧴" },
 };
 
 function loadState() {
@@ -99,10 +108,11 @@ function parseCustomDates(input) {
   if (!input) {
     return [];
   }
-  return input
+  const dates = input
     .split(/,|，/)
     .map((value) => value.trim())
     .filter(Boolean);
+  return [...new Set(dates)];
 }
 
 function getVisitDates(visit) {
@@ -117,6 +127,21 @@ function getVisitDates(visit) {
     dates.push(toDateKey(current));
   }
   return dates;
+}
+
+function getVisitCount(visit) {
+  if (!visit.start || !visit.end) {
+    return 0;
+  }
+  return getVisitDates(visit).length;
+}
+
+function getCareTypeLabel(type) {
+  return careTypeOptions[type]?.label || "特殊照顾";
+}
+
+function getCareTypeIcon(type) {
+  return careTypeOptions[type]?.icon || "⭐";
 }
 
 function updateDashboard() {
@@ -139,11 +164,6 @@ function updateDashboard() {
   elements.monthlyRevenue.textContent = formatCurrency(revenue);
   elements.monthlyCats.textContent = staysThisMonth.length.toString();
   elements.monthlyVisits.textContent = visitsThisMonth.length.toString();
-}
-
-function renderPriceInputs() {
-  elements.singlePrice.value = state.prices.single;
-  elements.groupPrice.value = state.prices.group;
 }
 
 function renderOwnerOptions() {
@@ -211,6 +231,7 @@ function renderStays() {
       <td>${stay.type === "single" ? "单间" : "幼儿园"}</td>
       <td>${stay.start}</td>
       <td>${stay.end}</td>
+      <td>${formatCurrency(stay.unitPrice || 0)} × ${stay.days || 0}</td>
       <td>${formatCurrency(stay.fee)}</td>
       <td>
         <button data-action="edit" data-id="${stay.id}">编辑</button>
@@ -235,6 +256,7 @@ function renderVisits() {
       <td>${owner ? owner.name : ""}</td>
       <td>${visit.start} ~ ${visit.end}</td>
       <td>${frequencyMap[visit.frequency] || ""}</td>
+      <td>${formatCurrency(visit.unitPrice || 0)} × ${visit.count || 0}</td>
       <td>${formatCurrency(visit.fee)}</td>
       <td>
         <button data-action="edit" data-id="${visit.id}">编辑</button>
@@ -243,6 +265,15 @@ function renderVisits() {
     `;
     elements.visitTable.appendChild(row);
   });
+}
+
+function renderCareOptions() {
+  elements.stayCareType.innerHTML = [
+    '<option value="">不添加星标</option>',
+    ...Object.entries(careTypeOptions).map(
+      ([value, option]) => `<option value="${value}">${option.icon} ${option.label}</option>`
+    ),
+  ].join("");
 }
 
 function renderCalendar() {
@@ -274,18 +305,67 @@ function renderCalendar() {
       const dates = getVisitDates(visit);
       return dates.includes(dateKey);
     });
+    const careMarksForDay = state.careMarks.filter((mark) => mark.date === dateKey);
+    const careByCat = careMarksForDay.reduce((result, mark) => {
+      if (!result[mark.catId]) {
+        result[mark.catId] = [];
+      }
+      result[mark.catId].push(mark);
+      return result;
+    }, {});
 
     const stayTags = staysForDay
       .map((stay) => {
         const cat = state.cats.find((item) => item.id === stay.catId);
         const typeLabel = stay.type === "single" ? "单间" : "幼儿园";
-        return `<span class="tag ${stay.type}">${cat ? cat.name : ""} · ${typeLabel}</span>`;
+        const careIcons = (careByCat[stay.catId] || [])
+          .map(
+            (mark) =>
+              `<span class="care-icon" data-care-id="${mark.id}" title="${getCareTypeLabel(
+                mark.type
+              )}">${getCareTypeIcon(mark.type)}</span>`
+          )
+          .join("");
+        return `
+          <span class="tag ${stay.type}" data-stay-id="${stay.id}">
+            ${cat ? cat.name : ""} · ${typeLabel}
+            ${careIcons ? `<span class="care-icons">${careIcons}</span>` : ""}
+          </span>
+        `;
+      })
+      .join("");
+    const stayCatIds = new Set(staysForDay.map((stay) => stay.catId));
+    const extraCareTags = Object.entries(
+      careMarksForDay.reduce((result, mark) => {
+        if (stayCatIds.has(mark.catId)) {
+          return result;
+        }
+        if (!result[mark.catId]) {
+          result[mark.catId] = [];
+        }
+        result[mark.catId].push(mark);
+        return result;
+      }, {})
+    )
+      .map(([catId, marks]) => {
+        const cat = state.cats.find((item) => item.id === catId);
+        const icons = marks
+          .map(
+            (mark) =>
+              `<span class="care-icon" data-care-id="${mark.id}">${getCareTypeIcon(
+                mark.type
+              )}</span>`
+          )
+          .join("");
+        return `<span class="tag care">${cat ? cat.name : ""} ${icons}</span>`;
       })
       .join("");
     const visitTags = visitsForDay
       .map((visit) => {
         const owner = state.owners.find((item) => item.id === visit.ownerId);
-        return `<span class="tag visit">上门 · ${owner ? owner.name : ""}</span>`;
+        return `<span class="tag visit" data-visit-id="${visit.id}">上门 · ${
+          owner ? owner.name : ""
+        }</span>`;
       })
       .join("");
 
@@ -294,9 +374,13 @@ function renderCalendar() {
         <span>${day}</span>
         <span class="muted">${["日", "一", "二", "三", "四", "五", "六"][date.getDay()]}</span>
       </header>
-      ${stayTags}
-      ${visitTags}
+      <div class="day-body">
+        ${stayTags}
+        ${visitTags}
+        ${extraCareTags}
+      </div>
     `;
+    dayCard.dataset.date = dateKey;
 
     elements.calendar.appendChild(dayCard);
   }
@@ -308,24 +392,30 @@ function resetForms() {
   elements.catForm.reset();
   elements.stayForm.reset();
   elements.visitForm.reset();
+  elements.stayCareDate.value = "";
+  elements.stayCareType.value = "";
+  elements.stayCareNote.value = "";
   editing = {
     ownerId: null,
     catId: null,
     stayId: null,
     visitId: null,
+    careId: null,
   };
 }
 
 function renderAll() {
-  renderPriceInputs();
   renderOwnerOptions();
   renderCatOptions();
+  renderCareOptions();
   renderOwners();
   renderCats();
   renderStays();
   renderVisits();
   renderCalendar();
   updateDashboard();
+  updateStayPricing();
+  updateVisitPricing();
 }
 
 function setEditingForm(form, mode) {
@@ -335,12 +425,47 @@ function setEditingForm(form, mode) {
   }
 }
 
-elements.savePrices.addEventListener("click", () => {
-  state.prices.single = Number(elements.singlePrice.value) || 0;
-  state.prices.group = Number(elements.groupPrice.value) || 0;
-  saveState();
-  updateDashboard();
-});
+function startStayEdit(stayId) {
+  const stay = state.stays.find((item) => item.id === stayId);
+  if (!stay) {
+    return;
+  }
+  editing.stayId = stayId;
+  elements.stayCat.value = stay.catId;
+  elements.stayType.value = stay.type;
+  elements.stayStart.value = stay.start;
+  elements.stayEnd.value = stay.end;
+  elements.stayFee.value = stay.fee;
+  elements.stayUnitPrice.value = stay.unitPrice || "";
+  elements.stayDays.value = stay.days || 0;
+  const matchingCare = state.careMarks.find(
+    (mark) => mark.catId === stay.catId && mark.date === stay.start
+  );
+  elements.stayCareDate.value = matchingCare ? matchingCare.date : stay.start;
+  elements.stayCareType.value = matchingCare ? matchingCare.type : "";
+  elements.stayCareNote.value = matchingCare?.note || "";
+  editing.careId = matchingCare?.id || null;
+  setEditingForm(elements.stayForm, "edit");
+  updateStayPricing();
+}
+
+function startVisitEdit(visitId) {
+  const visit = state.visits.find((item) => item.id === visitId);
+  if (!visit) {
+    return;
+  }
+  editing.visitId = visitId;
+  elements.visitOwner.value = visit.ownerId;
+  elements.visitStart.value = visit.start;
+  elements.visitEnd.value = visit.end;
+  elements.visitFrequency.value = visit.frequency;
+  elements.visitCustom.value = visit.customDates;
+  elements.visitFee.value = visit.fee;
+  elements.visitUnitPrice.value = visit.unitPrice || "";
+  elements.visitCount.value = visit.count || 0;
+  setEditingForm(elements.visitForm, "edit");
+  updateVisitPricing();
+}
 
 elements.ownerForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -393,8 +518,7 @@ elements.stayForm.addEventListener("submit", (event) => {
   const stayEnd = elements.stayEnd.value;
   const stayType = elements.stayType.value;
   const days = daysBetween(stayStart, stayEnd);
-  const feeInput = Number(elements.stayFee.value) || 0;
-  const defaultFee = stayType === "single" ? state.prices.single : state.prices.group;
+  const unitPrice = Number(elements.stayUnitPrice.value) || 0;
   const cat = state.cats.find((item) => item.id === elements.stayCat.value);
   const owner = state.owners.find((item) => item.id === cat?.ownerId);
   const discountPercent = Number(owner?.discountPercent) || 0;
@@ -405,7 +529,9 @@ elements.stayForm.addEventListener("submit", (event) => {
     type: stayType,
     start: stayStart,
     end: stayEnd,
-    fee: feeInput || defaultFee * days * discountFactor,
+    unitPrice,
+    days,
+    fee: unitPrice * days * discountFactor,
   };
   if (!stay.catId || !stay.start || !stay.end) {
     return;
@@ -415,6 +541,25 @@ elements.stayForm.addEventListener("submit", (event) => {
   } else {
     state.stays.push(stay);
   }
+  const careDate = elements.stayCareDate.value;
+  const careType = elements.stayCareType.value;
+  const careNote = elements.stayCareNote.value.trim();
+  if (editing.careId && (!careDate || !careType)) {
+    state.careMarks = state.careMarks.filter((item) => item.id !== editing.careId);
+  } else if (careDate && careType) {
+    const mark = {
+      id: editing.careId || crypto.randomUUID(),
+      catId: stay.catId,
+      date: careDate,
+      type: careType,
+      note: careNote,
+    };
+    if (editing.careId) {
+      state.careMarks = state.careMarks.map((item) => (item.id === mark.id ? mark : item));
+    } else {
+      state.careMarks.push(mark);
+    }
+  }
   saveState();
   resetForms();
   renderAll();
@@ -423,14 +568,24 @@ elements.stayForm.addEventListener("submit", (event) => {
 
 elements.visitForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  const visit = {
-    id: editing.visitId || crypto.randomUUID(),
-    ownerId: elements.visitOwner.value,
+  const visitDraft = {
     start: elements.visitStart.value,
     end: elements.visitEnd.value,
     frequency: elements.visitFrequency.value,
     customDates: elements.visitCustom.value.trim(),
-    fee: Number(elements.visitFee.value) || 0,
+  };
+  const count = getVisitCount(visitDraft);
+  const unitPrice = Number(elements.visitUnitPrice.value) || 0;
+  const visit = {
+    id: editing.visitId || crypto.randomUUID(),
+    ownerId: elements.visitOwner.value,
+    start: visitDraft.start,
+    end: visitDraft.end,
+    frequency: visitDraft.frequency,
+    customDates: visitDraft.customDates,
+    unitPrice,
+    count,
+    fee: unitPrice * count,
   };
   if (!visit.ownerId || !visit.start || !visit.end) {
     return;
@@ -453,8 +608,11 @@ elements.ownerTable.addEventListener("click", (event) => {
   }
   const ownerId = button.dataset.id;
   if (button.dataset.action === "delete") {
+    const catIds = state.cats.filter((cat) => cat.ownerId === ownerId).map((cat) => cat.id);
     state.owners = state.owners.filter((item) => item.id !== ownerId);
     state.cats = state.cats.filter((cat) => cat.ownerId !== ownerId);
+    state.stays = state.stays.filter((stay) => !catIds.includes(stay.catId));
+    state.careMarks = state.careMarks.filter((mark) => !catIds.includes(mark.catId));
     saveState();
     renderAll();
     return;
@@ -480,6 +638,7 @@ elements.catTable.addEventListener("click", (event) => {
   if (button.dataset.action === "delete") {
     state.cats = state.cats.filter((item) => item.id !== catId);
     state.stays = state.stays.filter((stay) => stay.catId !== catId);
+    state.careMarks = state.careMarks.filter((mark) => mark.catId !== catId);
     saveState();
     renderAll();
     return;
@@ -507,17 +666,7 @@ elements.stayTable.addEventListener("click", (event) => {
     renderAll();
     return;
   }
-  const stay = state.stays.find((item) => item.id === stayId);
-  if (!stay) {
-    return;
-  }
-  editing.stayId = stayId;
-  elements.stayCat.value = stay.catId;
-  elements.stayType.value = stay.type;
-  elements.stayStart.value = stay.start;
-  elements.stayEnd.value = stay.end;
-  elements.stayFee.value = stay.fee;
-  setEditingForm(elements.stayForm, "edit");
+  startStayEdit(stayId);
 });
 
 elements.visitTable.addEventListener("click", (event) => {
@@ -532,18 +681,77 @@ elements.visitTable.addEventListener("click", (event) => {
     renderAll();
     return;
   }
-  const visit = state.visits.find((item) => item.id === visitId);
-  if (!visit) {
+  startVisitEdit(visitId);
+});
+
+function updateVisitPricing() {
+  const visitDraft = {
+    start: elements.visitStart.value,
+    end: elements.visitEnd.value,
+    frequency: elements.visitFrequency.value,
+    customDates: elements.visitCustom.value.trim(),
+  };
+  const count = getVisitCount(visitDraft);
+  const unitPrice = Number(elements.visitUnitPrice.value) || 0;
+  elements.visitCount.value = count;
+  elements.visitFee.value = unitPrice * count;
+}
+
+function updateStayPricing() {
+  const stayStart = elements.stayStart.value;
+  const stayEnd = elements.stayEnd.value;
+  const days = stayStart && stayEnd ? daysBetween(stayStart, stayEnd) : 0;
+  const unitPrice = Number(elements.stayUnitPrice.value) || 0;
+  const cat = state.cats.find((item) => item.id === elements.stayCat.value);
+  const owner = state.owners.find((item) => item.id === cat?.ownerId);
+  const discountPercent = Number(owner?.discountPercent) || 0;
+  const discountFactor = Math.max(0, 1 - discountPercent / 100);
+  elements.stayDays.value = days;
+  elements.stayFee.value = unitPrice * days * discountFactor;
+}
+
+[
+  elements.stayStart,
+  elements.stayEnd,
+  elements.stayCat,
+  elements.stayUnitPrice,
+].forEach((input) => {
+  input.addEventListener("input", updateStayPricing);
+});
+
+[
+  elements.visitStart,
+  elements.visitEnd,
+  elements.visitFrequency,
+  elements.visitCustom,
+  elements.visitUnitPrice,
+].forEach((input) => {
+  input.addEventListener("input", updateVisitPricing);
+});
+
+elements.calendar.addEventListener("click", (event) => {
+  const stayTag = event.target.closest("[data-stay-id]");
+  if (stayTag) {
+    startStayEdit(stayTag.dataset.stayId);
+    elements.stayForm.scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }
-  editing.visitId = visitId;
-  elements.visitOwner.value = visit.ownerId;
-  elements.visitStart.value = visit.start;
-  elements.visitEnd.value = visit.end;
-  elements.visitFrequency.value = visit.frequency;
-  elements.visitCustom.value = visit.customDates;
-  elements.visitFee.value = visit.fee;
-  setEditingForm(elements.visitForm, "edit");
+  const visitTag = event.target.closest("[data-visit-id]");
+  if (visitTag) {
+    startVisitEdit(visitTag.dataset.visitId);
+    elements.visitForm.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+  const dayCard = event.target.closest(".day");
+  if (dayCard?.dataset.date) {
+    elements.stayCareDate.value = dayCard.dataset.date;
+    elements.stayCareType.value = "";
+    elements.stayCareNote.value = "";
+    editing.careId = null;
+    setEditingForm(elements.stayForm, "create");
+    elements.stayForm.scrollIntoView({ behavior: "smooth", block: "start" });
+    elements.stayCareType.focus();
+  }
 });
 
 elements.prevMonth.addEventListener("click", () => {
